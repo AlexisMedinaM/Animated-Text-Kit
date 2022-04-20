@@ -1,6 +1,7 @@
 import 'package:characters/characters.dart';
 import 'package:flutter/material.dart';
 import 'animated_text.dart';
+import 'Utils.dart';
 
 /// Animated Text that displays a [Text] element as if it is being typed one
 /// character at a time.
@@ -18,22 +19,23 @@ class TyperAnimatedText extends AnimatedText {
   final Curve curve;
 
   TyperAnimatedText(
-    String text, {
+    RichText richText, {
     TextAlign textAlign = TextAlign.start,
     TextStyle? textStyle,
     this.speed = const Duration(milliseconds: 40),
     this.curve = Curves.linear,
   }) : super(
-          text: text,
+          text: '',
+          richText: richText,
           textAlign: textAlign,
           textStyle: textStyle,
-          duration: speed * text.characters.length,
+          duration: speed * Utils.fromRichTextToPlainText(richText).characters.length,
         );
 
   late Animation<double> _typingText;
 
   @override
-  Duration get remaining => speed * (textCharacters.length - _typingText.value);
+  Duration get remaining => speed * (Utils.fromRichTextToPlainText(richText!).characters.length - _typingText.value);
 
   @override
   void initAnimation(AnimationController controller) {
@@ -48,10 +50,10 @@ class TyperAnimatedText extends AnimatedText {
     /// Output of CurveTween is in the range [0, 1] for majority of the curves.
     /// It is converted to [0, textCharacters.length].
     final count =
-        (_typingText.value.clamp(0, 1) * textCharacters.length).round();
+        (_typingText.value.clamp(0, 1) * Utils.fromRichTextToPlainText(richText!).characters.length).round();
 
-    assert(count <= textCharacters.length);
-    return textWidget(textCharacters.take(count).toString());
+    assert(count <= Utils.fromRichTextToPlainText(richText!).characters.length);
+    return textWidget(Utils.fromRichTextToPlainText(richText!).characters.take(count).toString());
   }
 }
 
@@ -103,7 +105,7 @@ class TyperAnimatedTextKit extends AnimatedTextKit {
   ) =>
       text
           .map((_) => TyperAnimatedText(
-                _,
+                RichText(text: TextSpan(text: _),),
                 textAlign: textAlign,
                 textStyle: textStyle,
                 speed: speed,

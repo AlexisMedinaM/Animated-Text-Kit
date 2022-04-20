@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'Utils.dart';
 
 /// Abstract base class for text animations.
 abstract class AnimatedText {
   /// Text for [Text] widget.
   final String text;
+
+  RichText? richText;
 
   /// [TextAlign] property for [Text] widget.
   ///
@@ -30,10 +33,11 @@ abstract class AnimatedText {
 
   AnimatedText({
     required this.text,
+    this.richText,
     this.textAlign = TextAlign.start,
     this.textStyle,
     required this.duration,
-  }) : textCharacters = text.characters;
+  }) : textCharacters = richText != null ? Utils.fromRichTextToPlainText(richText).characters : text.characters;
 
   /// Return the remaining Duration for the Animation (when applicable).
   Duration? get remaining => null;
@@ -43,15 +47,21 @@ abstract class AnimatedText {
 
   /// Utility method to create a styled [Text] widget using the [textAlign] and
   /// [textStyle], but you can specify the [data].
-  Widget textWidget(String data) => Text(
+  Widget textWidget(String data) {
+    if(richText != null) {
+      return Utils.createAnimatedRichText(richText!, data);
+    } else {
+       return Text(
         data,
         textAlign: textAlign,
         style: textStyle,
       );
+    }
+  }
 
   /// Widget showing the complete text (when animation is complete or paused).
   /// By default, it shows a Text widget, but this may be overridden.
-  Widget completeText(BuildContext context) => textWidget(text);
+  Widget completeText(BuildContext context) => richText ?? textWidget(text);
 
   /// Widget showing animated text, based on animation value(s).
   Widget animatedBuilder(BuildContext context, Widget? child);
@@ -148,6 +158,8 @@ class _AnimatedTextKitState extends State<AnimatedTextKit>
 
   Timer? _timer;
 
+  List<AnimatedText> _presentedAnimatedTexts = [];
+
   @override
   void initState() {
     super.initState();
@@ -168,12 +180,19 @@ class _AnimatedTextKitState extends State<AnimatedTextKit>
       behavior: HitTestBehavior.opaque,
       onTap: _onTap,
       child: _isCurrentlyPausing || !_controller.isAnimating
-          ? completeText
-          : AnimatedBuilder(
-              animation: _controller,
-              builder: _currentAnimatedText.animatedBuilder,
-              child: completeText,
-            ),
+          ? Column(
+              children: _presentedAnimatedTexts.map((e) => e.completeText(context)).toList(),
+            )
+          : Column(
+              children: _presentedAnimatedTexts.map((e) => e.completeText(context)).toList()
+                ..add(
+                  AnimatedBuilder(
+                    animation: _controller,
+                    builder: _currentAnimatedText.animatedBuilder,
+                    child: completeText,
+                  ),
+                ),
+            )
     );
   }
 
@@ -239,6 +258,7 @@ class _AnimatedTextKitState extends State<AnimatedTextKit>
   void _animationEndCallback(AnimationStatus state) {
     if (state == AnimationStatus.completed) {
       _setPause();
+      _presentedAnimatedTexts.add(_currentAnimatedText);
       assert(null == _timer || !_timer!.isActive);
       _timer = Timer(widget.pause, _nextAnimation);
     }

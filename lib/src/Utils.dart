@@ -18,13 +18,14 @@ class Utils {
       if (richText.text is TextSpan) {
         TextSpan generalTextSpan = richText.text as TextSpan;
         String textSpanText = generalTextSpan.text ?? '';
-        if(dataText.contains(textSpanText)) {
+        TextStyle? generalTextStyle = generalTextSpan.style;
+        if(dataText.isNotEmpty && dataText.startsWith(textSpanText)) {
           dataText = dataText.replaceFirst(textSpanText, '');
           return RichText(
             text: TextSpan(
               text: textSpanText,
-              style: generalTextSpan.style,
-              children: dataText.isNotEmpty ? Utils.deepTextSpansfromTextSpan(generalTextSpan, dataText) : []
+              style: generalTextStyle,
+              children: dataText.isNotEmpty ? Utils.deepTextSpansfromTextSpan(generalTextSpan, dataText, generalTextStyle, generalTextStyle) : []
             ),
             textAlign: richText.textAlign,
           );
@@ -42,20 +43,20 @@ class Utils {
       return richText;
   }
 
-  static List<TextSpan> deepTextSpansfromTextSpan(TextSpan textSpan, String text) {
+  static List<TextSpan> deepTextSpansfromTextSpan(TextSpan textSpan, String text, TextStyle? generalTextStyle, TextStyle? topScopeTextStyle) {
     var currentTextSpans = (textSpan.children ?? []);
     List<TextSpan> newTextSpans = [];
     if(currentTextSpans.isNotEmpty) {
       for (var item in currentTextSpans) {
         var itemTextSpan = item as TextSpan;
         String itemText = itemTextSpan.text ?? '';
-        if(text.isNotEmpty && text.contains(itemText)) {
+        if(text.isNotEmpty && text.startsWith(itemText)) {
           text = text.replaceFirst(itemText, "");
           newTextSpans.add(
             TextSpan(
               text: itemText,
-              style: itemTextSpan.style,
-              children: itemTextSpan.children?.isNotEmpty ?? false ? deepTextSpansfromTextSpan(itemTextSpan, text) : []
+              style: itemTextSpan.style ?? topScopeTextStyle ?? generalTextStyle,
+              children: itemTextSpan.children?.isNotEmpty ?? false ? deepTextSpansfromTextSpan(itemTextSpan, text, itemTextSpan.style, generalTextStyle) : []
             )
           );
           text = Utils.removedTextFromTextSpan(itemTextSpan, text);
@@ -64,7 +65,7 @@ class Utils {
             newTextSpans.add(
               TextSpan(
                 text: text,
-                style: itemTextSpan.style
+                style: itemTextSpan.style ?? topScopeTextStyle ?? generalTextStyle
               )
             );
           }

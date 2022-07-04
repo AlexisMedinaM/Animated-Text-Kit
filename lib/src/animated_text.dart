@@ -48,7 +48,7 @@ abstract class AnimatedText {
   /// Utility method to create a styled [Text] widget using the [textAlign] and
   /// [textStyle], but you can specify the [data].
   Widget textWidget(String data) {
-    if(richText != null) {
+    if(richText != null && data.isNotEmpty) {
       return Utils.createAnimatedRichText(richText!, data);
     } else {
        return Text(
